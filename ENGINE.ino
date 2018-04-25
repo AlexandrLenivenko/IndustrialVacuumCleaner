@@ -1,10 +1,11 @@
 
 #include <Bounce2.h>
-//pins
+                                //pin:
 const int FIRST_ENGINE  = 14;   //A0
 const int SECOND_ENGINE = 15;	  //A1
 const int THIRD_ENGINE  = 16;	  //A2
 const int TURBO_BUTTON  = 10;   //10
+const int START_BUTTON  = 11;   //11
 
 //variable const
 const int PERIOD = 1500;
@@ -15,41 +16,74 @@ int state = 0;
 long priveousTime = 0;
 boolean isTurbo = false;
 boolean previousTurboState = false;
+boolean canStart = false;
 
-// Instantiate a Bounce object
-Bounce debouncer = Bounce(); 
+// Instantiate a Bounce  for turbo button
+Bounce turboModeDebouncer = Bounce(); 
+
+// Instantiate a Bounce  for start button
+Bounce startButtonDebouncer = Bounce(); 
 
 void setup() {
   Serial.begin(9600);
+  //OUTPUT
   pinMode(FIRST_ENGINE, OUTPUT);
   pinMode(SECOND_ENGINE, OUTPUT);
   pinMode(THIRD_ENGINE, OUTPUT);
+  //INPUT
   pinMode(TURBO_BUTTON, INPUT);
+  pinMode(START_BUTTON, INPUT);
+  
+  turboModeDebouncer.attach(TURBO_BUTTON);
+  turboModeDebouncer.interval(150); // interval in ms
+  startButtonDebouncer.attach(START_BUTTON);
+  startButtonDebouncer.interval(150); // interval in ms
+
+  //changeEngineState();
   priveousTime = millis();
-
-  debouncer.attach(TURBO_BUTTON);
-  debouncer.interval(150); // interval in ms
-
-  changeEngineState();
 }
 
 void loop() {
-checkForTurbo();
-if(isTurbo) {
-    startTurboMode();
+  checkStart();
+  if(canStart){
+     startEngines();
   }else{
-    waitNotify();
-  }
+        Serial.println("WAITING");
+    }
 
   // Delay a little bit to avoid bouncing
     delay(50);
 }
 
+void checkStart(){
+  if(startButtonDebouncer.update()){
+    if(startButtonDebouncer.rose()){
+      canStart = !canStart;
+      if(!canStart) {
+        for(int i =0; i<ENGINES_COUNT; i++){        
+          digitalWrite(engines[i], LOW);
+        }
+        Serial.println("ALL ENGINES WERE TURNED OFF");
+      }
+    }
+  }
+}
+
+
+void startEngines(){
+  checkForTurbo();
+  if(isTurbo) {
+    startTurboMode();
+  }else{
+    waitNotify();
+  }
+}
+
 void checkForTurbo() {
     // Update the Bounce instance :
-  if(debouncer.update()){        
-    if(debouncer.rose()) {
-      Serial.println("HIGH");
+  if(turboModeDebouncer.update()){        
+    if(turboModeDebouncer.rose()) {
+      Serial.println("MODE WAS CHENGED");
       isTurbo = !isTurbo;
       previousTurboState = true;
     }
