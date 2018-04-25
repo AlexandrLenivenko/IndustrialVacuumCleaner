@@ -1,17 +1,23 @@
-int FIRST_ENGINE = 14;   //A0
-int SECOND_ENGINE = 15;	 //A1
-int THIRD_ENGINE = 16;	 //A2
-int TURBO_BUTTON = 10;   //10
 
-int engines[3] = {FIRST_ENGINE, SECOND_ENGINE, THIRD_ENGINE};
-int enginesState[3] = {HIGH, HIGH, LOW};
+#include <Bounce2.h>
+//pins
+const int FIRST_ENGINE  = 14;   //A0
+const int SECOND_ENGINE = 15;	  //A1
+const int THIRD_ENGINE  = 16;	  //A2
+const int TURBO_BUTTON  = 10;   //10
 
-int state = 1;
+//variable const
+const int PERIOD = 1500;
+const int ENGINES_COUNT = 3;
+const int engines[3] = {FIRST_ENGINE, SECOND_ENGINE, THIRD_ENGINE};
 
+int state = 0;
 long priveousTime = 0;
-
-const int PERIOD = 1000;
 boolean isTurbo = false;
+boolean previousTurboState = false;
+
+// Instantiate a Bounce object
+Bounce debouncer = Bounce(); 
 
 void setup() {
   Serial.begin(9600);
@@ -20,6 +26,11 @@ void setup() {
   pinMode(THIRD_ENGINE, OUTPUT);
   pinMode(TURBO_BUTTON, INPUT);
   priveousTime = millis();
+
+  debouncer.attach(TURBO_BUTTON);
+  debouncer.interval(150); // interval in ms
+
+  changeEngineState();
 }
 
 void loop() {
@@ -29,24 +40,34 @@ if(isTurbo) {
   }else{
     waitNotify();
   }
+
+  // Delay a little bit to avoid bouncing
+    delay(50);
 }
 
 void checkForTurbo() {
-    int temp = digitalRead(TURBO_BUTTON);
-    if(temp == HIGH) {
-        Serial.println("HIGH");
-        
-        isTurbo = !isTurbo;
-        delay(150);
-      }
-  }
-  
-void startTurboMode() {
-    digitalWrite(engines[0], HIGH);
-    digitalWrite(engines[1], HIGH);
-    digitalWrite(engines[2], HIGH);
-  }
+    // Update the Bounce instance :
+  if(debouncer.update()){        
+    if(debouncer.rose()) {
+      Serial.println("HIGH");
+      isTurbo = !isTurbo;
+      previousTurboState = true;
+    }
+   }
+}
 
+//change working mode one of  all engin's pin should be in HIGH case. One by one.
+void startTurboMode() {
+  if(previousTurboState){
+        for(int i =0; i<ENGINES_COUNT; i++){        
+          digitalWrite(engines[i], HIGH);
+        }
+        previousTurboState = false;
+        Serial.println("TURBO TURN ON");
+  }
+}
+
+//mesuring time according cost PERIOD
 void waitNotify() {
       if(millis() - priveousTime >= PERIOD) {
         changeEngineState();
@@ -55,22 +76,16 @@ void waitNotify() {
   }
 
 
+//change working mode one of pins should be in LOW case. One by one.
 void changeEngineState() {
-    switch(state) {
-      case 0: digitalWrite(engines[0], LOW);
-              digitalWrite(engines[1], HIGH);
-              digitalWrite(engines[2], HIGH);
-              state = 1;
-              break;
-      case 1: digitalWrite(engines[0], HIGH);
-              digitalWrite(engines[1], LOW);
-              digitalWrite(engines[2], HIGH);
-              state = 2;
-              break;
-      case 2: digitalWrite(engines[0], HIGH);
-              digitalWrite(engines[1], HIGH);
-              digitalWrite(engines[2], LOW);
-              state = 0;
-              break;  
-      }
-  }
+      for(int i =0; i<ENGINES_COUNT; i++){
+          if(state == i) {
+            digitalWrite(engines[i], LOW);
+            }else{
+              digitalWrite(engines[i], HIGH);
+            }
+    }
+
+  state = ++state % ENGINES_COUNT;
+}
+
