@@ -63,6 +63,8 @@ void checkStart(){
         for(int i =0; i<ENGINES_COUNT; i++){        
           digitalWrite(engines[i], LOW);
         }
+        previousTurboState = false;
+        isTurbo = false;
         Serial.println("ALL ENGINES WERE TURNED OFF");
       }
     }
