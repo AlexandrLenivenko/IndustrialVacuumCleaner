@@ -2,14 +2,19 @@
 #include <Bounce2.h>
                                 //pin:
 const int FIRST_ENGINE  = 14;   //A0
-const int SECOND_ENGINE = 15;	//A1
-const int THIRD_ENGINE  = 16;	//A2
+const int SECOND_ENGINE = 15;	  //A1
+const int THIRD_ENGINE  = 16;	  //A2
 const int TURBO_BUTTON  = 10;   //10
 const int START_BUTTON  = 11;   //11
+const int U             = A6;   //A6
 
 //variable const
-const int PERIOD = 1500;
+//time const 
+const int PERIOD            = 1500; // engin's sleep
+const int DELAY_STOP_ENGINS = 5000; // working time after no U
+
 const int ENGINES_COUNT = 3;
+const int BARRIER = 2;
 const int engines[3] = {FIRST_ENGINE, SECOND_ENGINE, THIRD_ENGINE};
 
 int state = 0;
@@ -39,17 +44,18 @@ void setup() {
   startButtonDebouncer.attach(START_BUTTON);
   startButtonDebouncer.interval(150); // interval in ms
 
-  //changeEngineState();
   priveousTime = millis();
 }
 
 void loop() {
   checkStart();
-  if(canStart){
+  if(canStart || readU() > BARRIER){
      startEngines();
   }else{
-        Serial.println("WAITING");
+    if(shouldStop()) {
+      turnOnOrOffAllEngins(LOW);
     }
+   }
 
   // Delay a little bit to avoid bouncing
     delay(50);
@@ -60,12 +66,7 @@ void checkStart(){
     if(startButtonDebouncer.rose()){
       canStart = !canStart;
       if(!canStart) {
-        for(int i =0; i<ENGINES_COUNT; i++){        
-          digitalWrite(engines[i], LOW);
-        }
-        previousTurboState = false;
-        isTurbo = false;
-        Serial.println("ALL ENGINES WERE TURNED OFF");
+        turnOnOrOffAllEngins(LOW);
       }
     }
   }
@@ -95,9 +96,7 @@ void checkForTurbo() {
 //change working mode one of  all engin's pin should be in HIGH case. One by one.
 void startTurboMode() {
   if(previousTurboState){
-        for(int i =0; i<ENGINES_COUNT; i++){        
-          digitalWrite(engines[i], HIGH);
-        }
+        turnOnOrOffAllEngins(HIGH);
         previousTurboState = false;
         Serial.println("TURBO TURN ON");
   }
@@ -124,4 +123,45 @@ void changeEngineState() {
 
   state = ++state % ENGINES_COUNT;
 }
+
+void turnOnOrOffAllEngins(int state){
+  for(int i =0; i<ENGINES_COUNT; i++){
+        digitalWrite(engines[i], state);
+  }
+  if(state == LOW) {
+      previousTurboState = false;
+      isTurbo = false;
+  }
+  Serial.print("ALL ENGINES WERE TURNED ");  
+  Serial.println(state);
+}
+
+boolean shouldStop() {
+  long delayToStopTime = millis();
+  boolean shouldStop = true;
+  
+  while(millis() - delayToStopTime <= DELAY_STOP_ENGINS) {
+     int read = readU();
+     checkStart();
+     if(read > BARRIER || canStart) {
+       shouldStop = false;
+       break;
+     }
+  }
+  return shouldStop;
+}
+int readU(){        
+  int read = analogRead(U);
+  Serial.print("U=");
+  
+  read = read - 512;
+  if(read < 0) {
+     read = read * (-1);
+  }
+  
+  Serial.println(read);
+  return read;
+}
+        
+        
 
