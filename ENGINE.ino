@@ -7,6 +7,8 @@ const int THIRD_ENGINE  = 16;	  //A2
 const int TURBO_BUTTON  = 10;   //10
 const int START_BUTTON  = 11;   //11
 const int U             = A6;   //A6
+const int GREEN_LED     = 13;   //?
+const int RED_LED       = A7;   //?
 
 //variable const
 //time const 
@@ -14,14 +16,20 @@ const int PERIOD            = 1500; // engin's sleep
 const int DELAY_STOP_ENGINS = 5000; // working time after no U
 
 const int ENGINES_COUNT = 3;
-const int BARRIER = 2;
+
+// Чуствительность датчика на 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
+const int BARRIER = 2;              // 2 * 
 const int engines[3] = {FIRST_ENGINE, SECOND_ENGINE, THIRD_ENGINE};
 
+int GREEN_LED_PERIOD = 1000;
 int state = 0;
 long priveousTime = 0;
+long greenLedTime = 0;
 boolean isTurbo = false;
 boolean previousTurboState = false;
 boolean canStart = false;
+boolean greenLedState = false;
+boolean isShouldStop = true;
 
 // Instantiate a Bounce  for turbo button
 Bounce turboModeDebouncer = Bounce(); 
@@ -35,6 +43,8 @@ void setup() {
   pinMode(FIRST_ENGINE, OUTPUT);
   pinMode(SECOND_ENGINE, OUTPUT);
   pinMode(THIRD_ENGINE, OUTPUT);
+  pinMode(GREEN_LED, OUTPUT);
+  pinMode(RED_LED, OUTPUT);
   //INPUT
   pinMode(TURBO_BUTTON, INPUT);
   pinMode(START_BUTTON, INPUT);
@@ -52,7 +62,8 @@ void loop() {
   if(canStart || readU() > BARRIER){
      startEngines();
   }else{
-    if(shouldStop()) {
+    isShouldStop = shouldStop();
+    if(isShouldStop) {
       turnOnOrOffAllEngins(LOW);
     }
    }
@@ -70,6 +81,7 @@ void checkStart(){
       }
     }
   }
+  showIndication();
 }
 
 
@@ -131,6 +143,7 @@ void turnOnOrOffAllEngins(int state){
   if(state == LOW) {
       previousTurboState = false;
       isTurbo = false;
+      isShouldStop = true;
   }
   Serial.print("ALL ENGINES WERE TURNED ");  
   Serial.println(state);
@@ -162,6 +175,18 @@ int readU(){
   Serial.println(read);
   return read;
 }
-        
-        
 
+void showIndication(){
+  int green_led_level = greenLedState;
+  if(canStart || !isShouldStop){
+      green_led_level = 1;
+    }else{
+      if(millis() - greenLedTime > GREEN_LED_PERIOD){
+        greenLedState = !greenLedState;
+        green_led_level = greenLedState;
+        greenLedTime = millis();
+      }
+    }
+  digitalWrite(GREEN_LED, green_led_level);  
+  digitalWrite(RED_LED, isTurbo);  
+}
