@@ -1,35 +1,51 @@
 
 #include <Bounce2.h>
-                                //pin:
-const int FIRST_ENGINE  = 14;   //A0
-const int SECOND_ENGINE = 15;	  //A1
-const int THIRD_ENGINE  = 16;	  //A2
-const int TURBO_BUTTON  = 10;   //10
-const int START_BUTTON  = 11;   //11
-const int U             = A6;   //A6
-const int GREEN_LED     = 13;   //?
-const int RED_LED       = A7;   //?
 
-//variable const
-//time const 
-const int PERIOD            = 1500; // engin's sleep
-const int DELAY_STOP_ENGINS = 5000; // working time after no U
+//*PINS DECLARETION*//
+                                        //pin:
+//relay                                    
+const int FIRST_STARTING_RELAY  = 14;   //A0
+const int SECOND_STARTING_RELAY = 15;	  //A1
+const int THIRD_STARTING_RELAY  = 16;	  //A2
+const int FIRST_MAIN_RELAY      = 2;    //D2
+const int SECOND_MAIN_RELAY     = 3;    //D3
+const int THIRD_MAIN_RELAY      = 4;    //D4
 
+//buttons
+const int TURBO_BUTTON          = 10;   //D10 deprecated!!!
+const int START_BUTTON          = 11;   //D11
+//U sensor
+const int U                     = A6;   //A6
+//LED
+const int GREEN_LED             = 13;   //?
+const int RED_LED               = A7;   //?
+
+//* CONST*//
 const int ENGINES_COUNT = 3;
 
-// Чуствительность датчика на 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
-const int BARRIER = 2;              // 2 * 
-const int engines[3] = {FIRST_ENGINE, SECOND_ENGINE, THIRD_ENGINE};
+//time 
+const int PERIOD                      = 5000;  // engin's sleep
+const int DELAY_STOP_ENGINS           = 5000;  // working time after no U
+const int GREEN_LED_PERIOD            = 1000;
+const int PERIOD_WAIT_MAIN_RELAY      = 3200;
+// U barrier
+const int BARRIER                     = 4;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
+//arrais
+const int startingRelayArr[3] = {FIRST_STARTING_RELAY, SECOND_STARTING_RELAY, THIRD_STARTING_RELAY};
+const int mainRelayArr[3] = {FIRST_MAIN_RELAY, SECOND_MAIN_RELAY, THIRD_MAIN_RELAY};     
 
-int GREEN_LED_PERIOD = 1000;
-int state = 0;
-long priveousTime = 0;
-long greenLedTime = 0;
-boolean isTurbo = false;
-boolean previousTurboState = false;
-boolean canStart = false;
-boolean greenLedState = false;
-boolean isShouldStop = true;
+//*VARIEBLES *//
+
+int state                       = 0;
+long priveousTime               = 0;
+long greenLedTime               = 0;
+boolean isTurbo                 = false;
+boolean previousTurboState      = false;
+boolean canStart                = false;
+boolean greenLedState           = false;
+boolean isShouldStop            = true;
+boolean shouldChMainRelayState  = false;
+
 
 // Instantiate a Bounce  for turbo button
 Bounce turboModeDebouncer = Bounce(); 
@@ -40,9 +56,13 @@ Bounce startButtonDebouncer = Bounce();
 void setup() {
   Serial.begin(9600);
   //OUTPUT
-  pinMode(FIRST_ENGINE, OUTPUT);
-  pinMode(SECOND_ENGINE, OUTPUT);
-  pinMode(THIRD_ENGINE, OUTPUT);
+  pinMode(FIRST_STARTING_RELAY, OUTPUT);
+  pinMode(SECOND_STARTING_RELAY, OUTPUT);
+  pinMode(THIRD_STARTING_RELAY, OUTPUT);
+  pinMode(FIRST_MAIN_RELAY, OUTPUT);
+  pinMode(SECOND_MAIN_RELAY, OUTPUT);
+  pinMode(THIRD_MAIN_RELAY, OUTPUT);
+  
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
   //INPUT
@@ -64,7 +84,7 @@ void loop() {
   }else{
     isShouldStop = shouldStop();
     if(isShouldStop) {
-      turnOnOrOffAllEngins(LOW);
+      turnOnOrOffAllEngins(HIGH);
     }
    }
 
@@ -77,7 +97,7 @@ void checkStart(){
     if(startButtonDebouncer.rose()){
       canStart = !canStart;
       if(!canStart) {
-        turnOnOrOffAllEngins(LOW);
+        turnOnOrOffAllEngins(HIGH);
       }
     }
   }
@@ -108,7 +128,7 @@ void checkForTurbo() {
 //change working mode one of  all engin's pin should be in HIGH case. One by one.
 void startTurboMode() {
   if(previousTurboState){
-        turnOnOrOffAllEngins(HIGH);
+        turnOnOrOffAllEngins(LOW);
         previousTurboState = false;
         Serial.println("TURBO TURN ON");
   }
@@ -117,19 +137,38 @@ void startTurboMode() {
 //mesuring time according cost PERIOD
 void waitNotify() {
       if(millis() - priveousTime >= PERIOD) {
-        changeEngineState();
+        changeStartingRelayState();
         priveousTime = millis();
+        shouldChMainRelayState = true;
+       }
+       if(shouldChMainRelayState && millis() - priveousTime >= PERIOD_WAIT_MAIN_RELAY)  {
+          changeMainRelayState();
+          shouldChMainRelayState = false;
        }
   }
 
 
 //change working mode one of pins should be in LOW case. One by one.
-void changeEngineState() {
+void changeStartingRelayState() {
       for(int i =0; i<ENGINES_COUNT; i++){
           if(state == i) {
-            digitalWrite(engines[i], LOW);
+            digitalWrite(startingRelayArr[i], HIGH);
             }else{
-              digitalWrite(engines[i], HIGH);
+              digitalWrite(startingRelayArr[i], LOW);
+            }
+    }
+
+  state = ++state % ENGINES_COUNT;
+  digitalWrite(mainRelayArr[state], HIGH);
+}
+
+//change working mode one of pins should be in LOW case. One by one.
+void changeMainRelayState() {
+      for(int i =0; i<ENGINES_COUNT; i++){
+          if(state == i) {
+            digitalWrite(mainRelayArr[i], HIGH);
+            }else{
+              digitalWrite(mainRelayArr[i], LOW);
             }
     }
 
@@ -138,9 +177,10 @@ void changeEngineState() {
 
 void turnOnOrOffAllEngins(int state){
   for(int i =0; i<ENGINES_COUNT; i++){
-        digitalWrite(engines[i], state);
+        digitalWrite(startingRelayArr[i], state);
+        digitalWrite(mainRelayArr[i], state);
   }
-  if(state == LOW) {
+  if(state == HIGH) {
       previousTurboState = false;
       isTurbo = false;
       isShouldStop = true;
