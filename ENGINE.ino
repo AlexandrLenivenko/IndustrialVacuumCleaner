@@ -16,8 +16,8 @@ const int START_BUTTON          = 11;   //D11
 //U sensor
 const int U                     = A6;   //A6
 //LED
-const int GREEN_LED             = 13;   //?
-const int RED_LED               = A7;   //?
+const int GREEN_LED             = 12;   //?
+const int RED_LED               = 13;   //?
 
 //* CONST*//
 const int ENGINES_COUNT = 3;
@@ -60,7 +60,8 @@ void setup() {
   pinMode(FIRST_MAIN_RELAY, OUTPUT);
   pinMode(SECOND_MAIN_RELAY, OUTPUT);
   pinMode(THIRD_MAIN_RELAY, OUTPUT);
-
+  turnOnOrOffAllEngins(HIGH);
+  
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
   //INPUT
@@ -204,14 +205,14 @@ boolean shouldStop() {
 }
 int readU() {
   int read = analogRead(U);
-  //Serial.print("U=");
+  Serial.print("U=");
 
   read = read - 512;
   if (read < 0) {
     read = read * (-1);
   }
 
-  //Serial.println(read);
+  Serial.println(read);
   return read;
 }
 
@@ -225,6 +226,9 @@ void showIndication() {
       green_led_level = greenLedState;
       greenLedTime = millis();
     }
+  }
+  if(isTurbo) {
+    green_led_level = 0;
   }
   digitalWrite(GREEN_LED, green_led_level);
   digitalWrite(RED_LED, isTurbo);
