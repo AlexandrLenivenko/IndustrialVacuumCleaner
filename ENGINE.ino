@@ -14,11 +14,15 @@ const int THIRD_MAIN_RELAY      = 4;    //D4
 //buttons
 const int START_BUTTON          = 11;   //D11
 //U sensor
-const int U                     = A6;   //A6
+const int U                     = A3;   //A3
 //LED
-const int GREEN_LED             = 13;   //?
-const int RED_LED               = A7;   //?
+const int GREEN_LED             = 12;   //?
+const int RED_LED               = 13;   //?
 
+//TERMOCUPLE 
+const int TERMOCUPLE1           = 10;   //10
+const int TERMOCUPLE2           = 7;    //7
+const int TERMOCUPLE3           = 6;    //6
 //* CONST*//
 const int ENGINES_COUNT = 3;
 
@@ -28,8 +32,9 @@ const int DELAY_STOP_ENGINS           = 5000;  // working time after no U
 const int GREEN_LED_PERIOD            = 1000;
 const int PERIOD_WAIT_MAIN_RELAY      = 3200;
 const int START_TURBO_MODE_TIME       = 2000;
+const int SLEEP                       = 1500;
 // U barrier
-const int BARRIER                     = 4;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
+const int BARRIER                     = 2;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
 //arrais
 const int startingRelayArr[3] = {FIRST_STARTING_RELAY, SECOND_STARTING_RELAY, THIRD_STARTING_RELAY};
 const int mainRelayArr[3] = {FIRST_MAIN_RELAY, SECOND_MAIN_RELAY, THIRD_MAIN_RELAY};
@@ -60,11 +65,15 @@ void setup() {
   pinMode(FIRST_MAIN_RELAY, OUTPUT);
   pinMode(SECOND_MAIN_RELAY, OUTPUT);
   pinMode(THIRD_MAIN_RELAY, OUTPUT);
-
+  turnOnOrOffAllEngins(HIGH);
+  
   pinMode(GREEN_LED, OUTPUT);
   pinMode(RED_LED, OUTPUT);
   //INPUT
   pinMode(START_BUTTON, INPUT);
+  pinMode(TERMOCUPLE1, INPUT);
+  pinMode(TERMOCUPLE2, INPUT);
+  pinMode(TERMOCUPLE3, INPUT);
 
   startButtonDebouncer.attach(START_BUTTON);
   startButtonDebouncer.interval(150); // interval in ms
@@ -88,6 +97,7 @@ void loop() {
 }
 
 void checkStart() {
+  alerm();
   if (startButtonDebouncer.update()) {
     if (startButtonDebouncer.rose()) {
       if (millis() - pressStartButtonTime >= START_TURBO_MODE_TIME && canStart) {
@@ -135,6 +145,7 @@ void startTurboMode() {
 
 //mesuring time according cost PERIOD
 void waitNotify() {
+  Serial.println("waitNotify");
   if (millis() - priveousTime >= PERIOD) {
     changeStartingRelayState();
     priveousTime = millis();
@@ -226,6 +237,78 @@ void showIndication() {
       greenLedTime = millis();
     }
   }
+  if(isTurbo) {
+    green_led_level = 0;
+  }
   digitalWrite(GREEN_LED, green_led_level);
   digitalWrite(RED_LED, isTurbo);
+}
+
+void alerm() {
+  //Serial.println("alerm");
+  boolean dangerWork = false;
+  if(digitalRead(TERMOCUPLE1) == HIGH) {
+      stopAndShowProblem(TERMOCUPLE1);
+  }
+  if(digitalRead(TERMOCUPLE2) == HIGH) {
+      stopAndShowProblem(TERMOCUPLE2);
+  }
+
+  if(digitalRead(TERMOCUPLE3) == HIGH) {
+     stopAndShowProblem(TERMOCUPLE3);
+  }
+}
+
+void stopAndShowProblem(int TERMOCUPLE) {
+  turnOnOrOffAllEngins(HIGH);
+  isTurbo  = false;
+  int green_led_level = 0;
+  
+  while(digitalRead(TERMOCUPLE) == HIGH) {
+   digitalWrite(GREEN_LED, LOW);
+    if(TERMOCUPLE == TERMOCUPLE1) {
+      showIndicationFirstTurmcuple();
+    }
+
+    if(TERMOCUPLE == TERMOCUPLE2) {
+      showIndicationSecondtTurmcuple();
+    }
+
+    if(TERMOCUPLE == TERMOCUPLE3) {
+      showIndicationTheardTurmcuple();
+    }
+  }   
+ }
+
+void showIndicationFirstTurmcuple() {
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/2);
+    digitalWrite(RED_LED, LOW); 
+    delay(SLEEP);
+}
+
+void showIndicationSecondtTurmcuple() {
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/3);
+    digitalWrite(RED_LED, LOW);
+    delay(SLEEP/3); 
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/3);
+    digitalWrite(RED_LED, LOW); 
+    delay(SLEEP);
+}
+
+void showIndicationTheardTurmcuple() {
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/4);
+    digitalWrite(RED_LED, LOW);
+    delay(SLEEP/4); 
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/4);
+    digitalWrite(RED_LED, LOW);
+    delay(SLEEP/4); 
+    digitalWrite(RED_LED, HIGH);
+    delay(SLEEP/4);
+    digitalWrite(RED_LED, LOW);  
+    delay(SLEEP);
 }
