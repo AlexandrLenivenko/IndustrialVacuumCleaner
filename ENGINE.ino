@@ -34,7 +34,7 @@ const int PERIOD_WAIT_MAIN_RELAY      = 3200;
 const int START_TURBO_MODE_TIME       = 2000;
 const int SLEEP                       = 1500;
 // U barrier
-const int BARRIER                     = 2;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
+const int BARRIER                     = 3;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
 //arrais
 const int startingRelayArr[3] = {FIRST_STARTING_RELAY, SECOND_STARTING_RELAY, THIRD_STARTING_RELAY};
 const int mainRelayArr[3] = {FIRST_MAIN_RELAY, SECOND_MAIN_RELAY, THIRD_MAIN_RELAY};
@@ -51,6 +51,7 @@ boolean canStart                = false;
 boolean greenLedState           = false;
 boolean isShouldStop            = true;
 boolean shouldChMainRelayState  = false;
+boolean isWaitingTurbo          = false;
 
 
 // Instantiate a Bounce  for start button
@@ -87,6 +88,8 @@ void loop() {
     startEngines();
   } else {
     isShouldStop = shouldStop();
+    Serial.print("isShouldStop==");
+    Serial.println(isShouldStop);
     if (isShouldStop) {
       turnOnOrOffAllEngins(HIGH);
     }
@@ -99,16 +102,21 @@ void loop() {
 void checkStart() {
   alerm();
   if (startButtonDebouncer.update()) {
+          // Update the Bounce instance :
+  if (startButtonDebouncer.fell()) {
+    pressStartButtonTime = millis();
+    isWaitingTurbo = true;
+    Serial.println("checkForTurbo");
+    Serial.println("pressStartButtonTime");
+  }
+  
     if (startButtonDebouncer.rose()) {
-      if (millis() - pressStartButtonTime >= START_TURBO_MODE_TIME && canStart) {
-        Serial.println("MODE WAS CHENGED");
-        isTurbo = !isTurbo;
-        previousTurboState = true;
-      } else {
+      if (millis() - pressStartButtonTime < START_TURBO_MODE_TIME) {
         canStart = !canStart;
-      }
+        isWaitingTurbo = false;      
       if (!canStart) {
         turnOnOrOffAllEngins(HIGH);
+      }
       }
     }
   }
@@ -126,12 +134,12 @@ void startEngines() {
 }
 
 void checkForTurbo() {
-  // Update the Bounce instance :
-  if (startButtonDebouncer.fell()) {
-    pressStartButtonTime = millis();
-    Serial.println("checkForTurbo");
-    Serial.println("pressStartButtonTime");
-  }
+   if (millis() - pressStartButtonTime >= START_TURBO_MODE_TIME && isWaitingTurbo) {
+        Serial.println("MODE WAS CHENGED");
+        isTurbo = !isTurbo;
+        previousTurboState = true;
+        isWaitingTurbo = false;
+   }
 }
 
 //change working mode one of  all engin's pin should be in HIGH case. One by one.
@@ -186,11 +194,23 @@ void changeMainRelayState() {
 }
 
 void turnOnOrOffAllEngins(int state) {
-  for (int i = 0; i < ENGINES_COUNT; i++) {
+  if (state == LOW) {
+    digitalWrite(RED_LED, HIGH);
+    digitalWrite(GREEN_LED, LOW);
+    for (int i = 0; i < ENGINES_COUNT; i++) {
+      digitalWrite(startingRelayArr[i], state);
+      //digitalWrite(mainRelayArr[i], state);
+    }
+    delay(PERIOD_WAIT_MAIN_RELAY);
+     for (int i = 0; i < ENGINES_COUNT; i++) {
+      digitalWrite(mainRelayArr[i], state);
+    }
+   }
+  if (state == HIGH) {
+   for (int i = 0; i < ENGINES_COUNT; i++) {
     digitalWrite(startingRelayArr[i], state);
     digitalWrite(mainRelayArr[i], state);
   }
-  if (state == HIGH) {
     previousTurboState = false;
     isTurbo = false;
     isShouldStop = true;
@@ -206,6 +226,7 @@ boolean shouldStop() {
   while (millis() - delayToStopTime <= DELAY_STOP_ENGINS) {
     int read = readU();
     checkStart();
+    //Serial.print("shouldStop");
     if (read > BARRIER || canStart) {
       shouldStop = false;
       break;
@@ -222,7 +243,7 @@ int readU() {
     read = read * (-1);
   }
 
-  //Serial.println(read);
+  Serial.println(read);
   return read;
 }
 
@@ -245,8 +266,6 @@ void showIndication() {
 }
 
 void alerm() {
-  //Serial.println("alerm");
-  boolean dangerWork = false;
   if(digitalRead(TERMOCUPLE1) == HIGH) {
       stopAndShowProblem(TERMOCUPLE1);
   }
@@ -262,8 +281,7 @@ void alerm() {
 void stopAndShowProblem(int TERMOCUPLE) {
   turnOnOrOffAllEngins(HIGH);
   isTurbo  = false;
-  int green_led_level = 0;
-  
+    
   while(digitalRead(TERMOCUPLE) == HIGH) {
    digitalWrite(GREEN_LED, LOW);
     if(TERMOCUPLE == TERMOCUPLE1) {
