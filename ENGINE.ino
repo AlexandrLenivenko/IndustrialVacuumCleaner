@@ -285,17 +285,14 @@ void stopAndShowProblem(int TERMOCUPLE) {
   while(digitalRead(TERMOCUPLE) == HIGH) {
    digitalWrite(GREEN_LED, LOW);
     if(TERMOCUPLE == TERMOCUPLE1) {
-      //showIndicationFirstTurmcuple();
       alarmLight(1);
     }
 
     if(TERMOCUPLE == TERMOCUPLE2) {
-      //showIndicationSecondtTurmcuple();
       alarmLight(2);
     }
 
     if(TERMOCUPLE == TERMOCUPLE3) {
-      //showIndicationTheardTurmcuple();
       alarmLight(3);
     }
   }   
