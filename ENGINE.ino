@@ -29,10 +29,10 @@ const int ENGINES_COUNT = 3;
 //time
 const int PERIOD                      = 5000;  // engin's sleep
 const int DELAY_STOP_ENGINS           = 5000;  // working time after no U
-const int GREEN_LED_PERIOD            = 1000;
-const int PERIOD_WAIT_MAIN_RELAY      = 3200;
-const int START_TURBO_MODE_TIME       = 2000;
-const int SLEEP_ALARM                 = 800;
+const int GREEN_LED_PERIOD            = 1000;  // green led working time
+const int PERIOD_WAIT_MAIN_RELAY      = 3200;  // time switch off between starting relay and main ralay
+const int START_TURBO_MODE_TIME       = 2000;  // time switch off between turbo mode and usual. And wise verse
+const int SLEEP_ALARM                 = 800;   // aralm time
 // U barrier
 const int BARRIER                     = 3;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
 //arrais
