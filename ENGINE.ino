@@ -5,8 +5,8 @@
 //pin:
 //relay
 const int FIRST_STARTING_RELAY  = A1;   //A1
-const int SECOND_STARTING_RELAY = A2;	 //A2
-const int THIRD_STARTING_RELAY  = A3;	 //A3
+const int SECOND_STARTING_RELAY = A2;	  //A2
+const int THIRD_STARTING_RELAY  = A3;	  //A3
 const int FIRST_MAIN_RELAY      = 4;    //D4
 const int SECOND_MAIN_RELAY     = 2;    //D2
 const int THIRD_MAIN_RELAY      = 3;    //D3
@@ -32,7 +32,7 @@ const int DELAY_STOP_ENGINS           = 5000;  // working time after no U
 const int GREEN_LED_PERIOD            = 1000;
 const int PERIOD_WAIT_MAIN_RELAY      = 3200;
 const int START_TURBO_MODE_TIME       = 2000;
-const int SLEEP                       = 1500;
+const int SLEEP_ALARM                 = 800;
 // U barrier
 const int BARRIER                     = 3;    // Sensitivity of the sensor to 30А  ---  66mV / A   30/1023*66 = 0,0567590577996405
 //arrais
@@ -58,7 +58,7 @@ boolean isWaitingTurbo          = false;
 Bounce startButtonDebouncer = Bounce();
 
 void setup() {
-  Serial.begin(9600);
+  //Serial.begin(9600);
   //OUTPUT
   pinMode(FIRST_STARTING_RELAY, OUTPUT);
   pinMode(SECOND_STARTING_RELAY, OUTPUT);
@@ -88,8 +88,8 @@ void loop() {
     startEngines();
   } else {
     isShouldStop = shouldStop();
-    Serial.print("isShouldStop==");
-    Serial.println(isShouldStop);
+    //Serial.print("isShouldStop==");
+    //Serial.println(isShouldStop);
     if (isShouldStop) {
       turnOnOrOffAllEngins(HIGH);
     }
@@ -100,14 +100,14 @@ void loop() {
 }
 
 void checkStart() {
-  alerm();
+  alarm();
   if (startButtonDebouncer.update()) {
           // Update the Bounce instance :
   if (startButtonDebouncer.fell()) {
     pressStartButtonTime = millis();
     isWaitingTurbo = true;
-    Serial.println("checkForTurbo");
-    Serial.println("pressStartButtonTime");
+    //Serial.println("checkForTurbo");
+    //Serial.println("pressStartButtonTime");
   }
   
     if (startButtonDebouncer.rose()) {
@@ -135,7 +135,7 @@ void startEngines() {
 
 void checkForTurbo() {
    if (millis() - pressStartButtonTime >= START_TURBO_MODE_TIME && isWaitingTurbo) {
-        Serial.println("MODE WAS CHENGED");
+        //Serial.println("MODE WAS CHENGED");
         isTurbo = !isTurbo;
         previousTurboState = true;
         isWaitingTurbo = false;
@@ -147,13 +147,13 @@ void startTurboMode() {
   if (previousTurboState) {
     turnOnOrOffAllEngins(LOW);
     previousTurboState = false;
-    Serial.println("TURBO TURN ON");
+    //Serial.println("TURBO TURN ON");
   }
 }
 
 //mesuring time according cost PERIOD
 void waitNotify() {
-  Serial.println("waitNotify");
+  //Serial.println("waitNotify");
   if (millis() - priveousTime >= PERIOD) {
     changeStartingRelayState();
     priveousTime = millis();
@@ -215,8 +215,8 @@ void turnOnOrOffAllEngins(int state) {
     isTurbo = false;
     isShouldStop = true;
   }
-  Serial.print("ALL ENGINES WERE TURNED ");
-  Serial.println(state);
+  //Serial.print("ALL ENGINES WERE TURNED ");
+  //Serial.println(state);
 }
 
 boolean shouldStop() {
@@ -243,7 +243,7 @@ int readU() {
     read = read * (-1);
   }
 
-  Serial.println(read);
+  //Serial.println(read);
   return read;
 }
 
@@ -265,7 +265,7 @@ void showIndication() {
   digitalWrite(RED_LED, isTurbo);
 }
 
-void alerm() {
+void alarm() {
   if(digitalRead(TERMOCUPLE1) == HIGH) {
       stopAndShowProblem(TERMOCUPLE1);
   }
@@ -285,48 +285,27 @@ void stopAndShowProblem(int TERMOCUPLE) {
   while(digitalRead(TERMOCUPLE) == HIGH) {
    digitalWrite(GREEN_LED, LOW);
     if(TERMOCUPLE == TERMOCUPLE1) {
-      showIndicationFirstTurmcuple();
+      alarmLight(1);
     }
 
     if(TERMOCUPLE == TERMOCUPLE2) {
-      showIndicationSecondtTurmcuple();
+      alarmLight(2);
     }
 
     if(TERMOCUPLE == TERMOCUPLE3) {
-      showIndicationTheardTurmcuple();
+      alarmLight(3);
     }
   }   
  }
 
-void showIndicationFirstTurmcuple() {
+void alarmLight(int termocuple) {
+  for(int i = 0; i < termocuple; i++ ) {
     digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/2);
-    digitalWrite(RED_LED, LOW); 
-    delay(SLEEP);
+    delay(SLEEP_ALARM/termocuple + 1);
+    digitalWrite(RED_LED, LOW);
+    delay(SLEEP_ALARM/termocuple + 1); 
+  }
+
+ delay(SLEEP_ALARM);
 }
 
-void showIndicationSecondtTurmcuple() {
-    digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/3);
-    digitalWrite(RED_LED, LOW);
-    delay(SLEEP/3); 
-    digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/3);
-    digitalWrite(RED_LED, LOW); 
-    delay(SLEEP);
-}
-
-void showIndicationTheardTurmcuple() {
-    digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/4);
-    digitalWrite(RED_LED, LOW);
-    delay(SLEEP/4); 
-    digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/4);
-    digitalWrite(RED_LED, LOW);
-    delay(SLEEP/4); 
-    digitalWrite(RED_LED, HIGH);
-    delay(SLEEP/4);
-    digitalWrite(RED_LED, LOW);  
-    delay(SLEEP);
-}
