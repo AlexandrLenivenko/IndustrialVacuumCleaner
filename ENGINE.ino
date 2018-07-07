@@ -4,25 +4,25 @@
 //*PINS DECLARETION*//
 //pin:
 //relay
-const int FIRST_STARTING_RELAY  = A1;   //A0
-const int SECOND_STARTING_RELAY = A2;	  //A1
-const int THIRD_STARTING_RELAY  = A3;	  //A2
-const int FIRST_MAIN_RELAY      = 4;    //D2
-const int SECOND_MAIN_RELAY     = 2;    //D3
-const int THIRD_MAIN_RELAY      = 3;    //D4
+const int FIRST_STARTING_RELAY  = A1;   //A1
+const int SECOND_STARTING_RELAY = A2;	 //A2
+const int THIRD_STARTING_RELAY  = A3;	 //A3
+const int FIRST_MAIN_RELAY      = 4;    //D4
+const int SECOND_MAIN_RELAY     = 2;    //D2
+const int THIRD_MAIN_RELAY      = 3;    //D3
 
 //buttons
 const int START_BUTTON          = 11;   //D11
 //U sensor
 const int U                     = A0;   //A3
 //LED
-const int GREEN_LED             = 12;   //?
-const int RED_LED               = 13;   //?
+const int GREEN_LED             = 12;   //D12
+const int RED_LED               = 13;   //D13
 
 //TERMOCUPLE 
-const int TERMOCUPLE1           = 10;   //10
-const int TERMOCUPLE2           = 6;    //7
-const int TERMOCUPLE3           = 7;    //6
+const int TERMOCUPLE1           = 10;   //D10
+const int TERMOCUPLE2           = 6;    //D7
+const int TERMOCUPLE3           = 7;    //D6
 //* CONST*//
 const int ENGINES_COUNT = 3;
 
