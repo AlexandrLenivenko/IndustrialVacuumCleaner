@@ -154,7 +154,7 @@ void startTurboMode() {
 //mesuring time according cost PERIOD
 void waitNotify() {
   //Serial.println("waitNotify");
-  if (millis() - priveousTime >= PERIOD) {
+  if (millis() - priveousTime >= PERIOD || isAllRelaisShotedDown()) {
     changeStartingRelayState();
     priveousTime = millis();
     shouldChMainRelayState = true;
@@ -163,6 +163,18 @@ void waitNotify() {
     changeMainRelayState();
     shouldChMainRelayState = false;
   }
+}
+
+//fix
+boolean isAllRelaisShotedDown() {
+  boolean isStoped = true;
+  for (int i = 0; i < ENGINES_COUNT; i++) {
+    if( digitalRead(startingRelayArr[i]) == LOW) {
+        isStoped = false;
+        break;
+      }
+  }
+   return isStoped;
 }
 
 
